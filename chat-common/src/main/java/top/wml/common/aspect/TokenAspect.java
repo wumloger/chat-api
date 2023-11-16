@@ -15,7 +15,7 @@ import top.wml.common.utils.JwtUtil;
 @Component
 public class TokenAspect {
 
-    @Around("@annotation(top.wml.annotation.TokenRequired)")
+    @Around("@annotation(top.wml.common.annotation.TokenRequired)")
     public Object checkToken(ProceedingJoinPoint joinPoint) throws Throwable {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
         HttpServletRequest request = attributes.getRequest();

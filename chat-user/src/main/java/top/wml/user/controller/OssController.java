@@ -55,12 +55,8 @@ public class OssController {
             int month = localDate.getMonthValue();
             int day = localDate.getDayOfMonth();
 
-            //获取用户id
-            String token = request.getHeader("token");
-            JSONObject jsonObject = JwtUtil.getJSONObject(token);
-            Long id = jsonObject.get("id", Long.class);
             //按id和时间分文件
-            newFileName = id + "/" + year + "/" + month + "/" + day + "/" + newFileName;
+            newFileName = year + "/" + month + "/" + day + "/" + newFileName;
             //类型
             String contentType = file.getContentType();
             minioUtils.uploadFile(minioConfig.getBucketName(), file, newFileName, contentType);

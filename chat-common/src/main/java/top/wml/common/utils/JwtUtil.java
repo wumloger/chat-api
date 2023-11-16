@@ -64,4 +64,8 @@ public class JwtUtil {
         return payloads;
     }
 
+    public static Long getUserId(String token){
+        return getJSONObject(token).get("id", Long.class);
+    }
+
 }

@@ -163,6 +163,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return user;
     }
 
+    @Override
+    public List<User> selectUserByNickname(String nickname) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(User::getNickname,nickname);
+        List<User> users = userMapper.selectList(wrapper);
+        return users;
+    }
+
     /**
      * 验证邮箱格式是否正确
      * @param email 待验证的邮箱

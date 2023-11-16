@@ -14,4 +14,6 @@ public interface UserService extends IService<User> {
     boolean validCode(String email,String code);
     String sendEmailForCode(String email);
     User getUserByEmail(String email);
+
+    List<User> selectUserByNickname(String nickname);
 }

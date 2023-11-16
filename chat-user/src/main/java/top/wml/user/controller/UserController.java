@@ -118,4 +118,18 @@ public class UserController {
         }
         return resp;
     }
+
+    @GetMapping("/getUserById")
+    public User getUserById(@RequestParam Long id){
+        return userService.getUserById(id);
+    }
+
+
+    @GetMapping("/getUserByNickname")
+    public CommonResp<List<User>> getUserListByNickName(@RequestParam String nickname){
+        CommonResp<List<User>> resp = new CommonResp<>();
+        resp.success(userService.selectUserByNickname(nickname));
+        return resp;
+    }
+
 }
