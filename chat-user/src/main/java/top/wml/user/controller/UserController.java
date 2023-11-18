@@ -1,11 +1,16 @@
 package top.wml.user.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
+import top.wml.common.annotation.TokenRequired;
 import top.wml.common.entity.User;
 import top.wml.common.exception.BusinessException;
 import top.wml.common.req.ChangePasswordEntity;
 import top.wml.common.resp.CommonResp;
+import top.wml.common.utils.JwtUtil;
+import top.wml.common.utils.RedisUtil;
 import top.wml.user.service.UserService;
 
 import java.util.List;
@@ -16,6 +21,9 @@ import java.util.Objects;
 public class UserController {
     @Resource
     private UserService userService;
+
+    @Resource
+    private HttpServletRequest request;
 
     @PostMapping("/register")
     public CommonResp register(@RequestBody User user){
@@ -91,6 +99,7 @@ public class UserController {
     @GetMapping("/getCode")
     public CommonResp<String> getCode(@RequestParam(required = true) String email){
         String code = userService.sendEmailForCode(email);
+        System.out.println("验证码为：" + code);
         CommonResp<String> resp = new CommonResp<>();
         resp.success(code);
         resp.setMsg("发送成功");
@@ -130,6 +139,44 @@ public class UserController {
         CommonResp<List<User>> resp = new CommonResp<>();
         resp.success(userService.selectUserByNickname(nickname));
         return resp;
+    }
+
+    @PostMapping("/bind")
+    @TokenRequired
+    public CommonResp<Boolean> bindEmail(@RequestBody ChangePasswordEntity changePasswordEntity){
+        User user = userService.getUserById(getUserId());
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        if(Objects.isNull(user)){
+            throw new BusinessException("用户不存在");
+        }
+        if(changePasswordEntity.getEmail() == null || changePasswordEntity.getCode() == null){
+            throw new BusinessException("缺少关键信息！");
+        }
+        wrapper.eq(User::getEmail,changePasswordEntity.getEmail());
+        User one = userService.getOne(wrapper);
+        if(one != null){
+            throw new BusinessException("该邮箱已经绑定了用户！");
+        }
+        boolean codeB = userService.validCode(changePasswordEntity.getEmail(), changePasswordEntity.getCode());
+        if(!codeB){
+            throw new BusinessException("验证码不正确！");
+        }
+        user.setEmail(changePasswordEntity.getEmail());
+        boolean b = userService.updateUserInfo(user);
+        CommonResp<Boolean> resp = new CommonResp<>();
+        if(b){
+            resp.success(true);
+            resp.setMsg("绑定成功");
+        }else{
+            resp.fail("绑定失败");
+        }
+        return resp;
+    }
+
+    private Long getUserId(){
+        String token = request.getHeader("token");
+        Long userId = JwtUtil.getUserId(token);
+        return userId;
     }
 
 }
