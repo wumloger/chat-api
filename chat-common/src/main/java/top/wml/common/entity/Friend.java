@@ -39,7 +39,7 @@ public class Friend {
     private Long createBy;
 
     @TableField(fill = FieldFill.INSERT)
-    private Date crateTime;
+    private Date createTime;
 
     private Long updateBy;
 

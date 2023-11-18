@@ -24,7 +24,7 @@ public interface FriendService extends IService<Friend> {
 
     Friend getFriendById(Long id);
 
-    List<Friend> getFriendList();
+    List<Friend> getFriendList(Long id);
 
     List<Invitation> getInvitationList(Long id);
 

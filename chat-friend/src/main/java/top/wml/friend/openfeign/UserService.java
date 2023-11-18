@@ -8,7 +8,7 @@ import top.wml.common.entity.User;
 @FeignClient("user-service")
 public interface UserService {
 
- @GetMapping("/getUserById")
+ @GetMapping("/user/getUserById")
  User getUserById(@RequestParam Long id);
 
 }

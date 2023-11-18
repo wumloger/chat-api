@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import top.wml.common.annotation.TokenRequired;
 import top.wml.common.entity.Friend;
 import top.wml.common.entity.Invitation;
@@ -44,7 +45,27 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         if(friendInfo == null){
             throw new BusinessException("朋友不存在");
         }
+        //看看是否曾经是好友，防止插入冗余字段
+        LambdaQueryWrapper<Friend> wrapperF = new LambdaQueryWrapper<>();
+        wrapperF.eq(Friend::getUserId, invitation.getUserId())
+              .eq(Friend::getFriendId, invitation.getFriendId());
+        Friend friend = friendMapper.selectOne(wrapperF);
 
+        LambdaQueryWrapper<Friend> wrapperF2 = new LambdaQueryWrapper<>();
+        wrapperF2.eq(Friend::getUserId, invitation.getFriendId())
+                .eq(Friend::getFriendId, invitation.getUserId());
+        Friend friend2 = friendMapper.selectOne(wrapperF2);
+        if(friend != null && friend2 != null){
+           throw new BusinessException("存在冗余数据!");
+        }
+        if(friend != null){
+            friend.setStatus((byte) 1);
+            return friendMapper.updateById(friend) > 0;
+        }
+        if(friend2 != null){
+            friend2.setStatus((byte)1);
+            return friendMapper.updateById(friend2) > 0;
+        }
         //拿到首字母
         String pinyin = PinyinUtil.getPinyinInitial(friendInfo.getNickname()).toUpperCase();
         String regex = "[a-zA-Z]";
@@ -53,14 +74,6 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         char firstLetter = 'A';
         if (matcher.find()) {
             firstLetter = matcher.group().charAt(0);
-        }
-        //看下数据库里有没有这个好友关系，不能重复添加
-        LambdaQueryWrapper<Friend> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Friend::getUserId, invitation.getUserId())
-               .eq(Friend::getFriendId, friendInfo.getId());
-        Friend friend = friendMapper.selectOne(wrapper);
-        if(friend!= null){
-            throw new BusinessException("不能重复添加好友");
         }
         //构建朋友对象
         Friend newFriend = Friend.builder()
@@ -89,6 +102,7 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     }
 
     @Override
+    @Transactional
     public boolean applyFriend(Invitation invitation) {
         if(invitation == null || invitation.getUserId() == null || invitation.getFriendId() == null){
             throw new BusinessException("提交信息不全");
@@ -97,9 +111,20 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         wrapper.eq(Invitation::getUserId, invitation.getUserId())
               .eq(Invitation::getFriendId, invitation.getFriendId())
                 .ne(Invitation::getStatus, (byte) 2);
-        Invitation has = invitationMapper.selectOne(wrapper);
-        if(has != null){
-            throw new BusinessException("请不要重复申请");
+        //判断是否已经是好友了
+        LambdaQueryWrapper<Friend> wrapperF = new LambdaQueryWrapper<>();
+        wrapperF.eq(Friend::getUserId, invitation.getUserId());
+        wrapperF.eq(Friend::getFriendId, invitation.getFriendId());
+        wrapperF.eq(Friend::getStatus, (byte) 1);
+        Friend has = friendMapper.selectOne(wrapperF);
+
+        LambdaQueryWrapper<Friend> wrapperF2 = new LambdaQueryWrapper<>();
+        wrapperF2.eq(Friend::getUserId, invitation.getFriendId());
+        wrapperF2.eq(Friend::getFriendId, invitation.getUserId());
+        wrapperF2.eq(Friend::getStatus, (byte) 1);
+        Friend has2 = friendMapper.selectOne(wrapperF2);
+        if(has != null || has2!= null){
+            throw new BusinessException("你们已经是好友了,请不要重复申请");
         }
         invitation.setStatus((byte)0);
         invitation.setCreateBy(invitation.getUserId());
@@ -111,8 +136,8 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     public boolean auditFriend(Invitation invitation) {
         LambdaQueryWrapper<Invitation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Invitation::getId, invitation.getId());
-        int update = invitationMapper.update(invitation, wrapper);
         boolean b = addFriend(invitation);
+        int update = invitationMapper.update(invitation, wrapper);
 
         return update > 0 & b;
     }
@@ -139,8 +164,9 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     }
 
     @Override
-    public List<Friend> getFriendList() {
+    public List<Friend> getFriendList(Long id) {
         LambdaQueryWrapper<Friend> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Friend::getUserId, id).or().eq(Friend::getFriendId, id);
         wrapper.eq(Friend::getStatus, (byte) 1);
         List<Friend> friends = friendMapper.selectList(wrapper);
         return friends;
