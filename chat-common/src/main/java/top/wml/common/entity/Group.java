@@ -6,40 +6,46 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
-
 @Data
-public class Message {
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Group {
     @TableId(type = IdType.ASSIGN_ID)
     @JsonSerialize(using = ToStringSerializer.class)
-    public Long id;
+    private Long id;
 
-    public String msgContent;
+    private String name;
 
-    public String msgType;
+    private String avatar;
 
-    @JsonSerialize(using = ToStringSerializer.class)
-    public Long fromUserId;
+    private String notice;
 
-    public Byte status;
+    private String intro;
 
-    public String time;
-
-    public String remark;
+    private String alphabetic;
 
     @JsonSerialize(using = ToStringSerializer.class)
-    public Long createBy;
+    private Long adminUserId;
+
+    private Byte status;
+
+    private String remark;
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long createBy;
 
     @TableField(fill = FieldFill.INSERT)
-    public Date createTime;
-
+    private Date createTime;
     @JsonSerialize(using = ToStringSerializer.class)
-    public Long updateBy;
+    private Long updateBy;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
-    public Date updateTime;
-
+    private Date updateTime;
 
 }

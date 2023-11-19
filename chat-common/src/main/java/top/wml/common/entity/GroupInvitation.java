@@ -1,9 +1,6 @@
 package top.wml.common.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.AllArgsConstructor;
@@ -12,12 +9,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Invitation {
-
+@TableName("group_invitation")
+public class GroupInvitation {
     @TableId(type = IdType.ASSIGN_ID)
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
@@ -30,24 +28,20 @@ public class Invitation {
     private String userAvatar;
 
     @JsonSerialize(using = ToStringSerializer.class)
-    private Long friendId;
+    private Long groupId;
 
-    private String friendNickname;
-
-    private String friendAvatar;
+    private String groupName;
 
     private Byte status;
 
     private String reason;
 
     private String remark;
-
     @JsonSerialize(using = ToStringSerializer.class)
     private Long createBy;
 
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;
-
     @JsonSerialize(using = ToStringSerializer.class)
     private Long updateBy;
 

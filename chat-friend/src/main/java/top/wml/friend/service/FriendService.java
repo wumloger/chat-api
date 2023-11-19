@@ -19,7 +19,7 @@ public interface FriendService extends IService<Friend> {
 
     boolean auditFriend(Invitation invitation);
 
-    boolean deleteFriend(Long id);
+    boolean deleteFriend(Long userId,Long friendId);
 
 
     Friend getFriendById(Long id);

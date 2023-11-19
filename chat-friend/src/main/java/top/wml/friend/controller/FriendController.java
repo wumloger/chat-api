@@ -107,7 +107,7 @@ public class FriendController {
     @DeleteMapping("/delete/{id}")
     public CommonResp<Boolean> deleteFriend(@PathVariable Long id){
         CommonResp<Boolean> resp = new CommonResp<>();
-        resp.success(friendService.deleteFriend(id));
+        resp.success(friendService.deleteFriend(getUserId(),id));
         return resp;
     }
 

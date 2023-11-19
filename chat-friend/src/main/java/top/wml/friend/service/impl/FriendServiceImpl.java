@@ -56,38 +56,52 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
                 .eq(Friend::getFriendId, invitation.getUserId());
         Friend friend2 = friendMapper.selectOne(wrapperF2);
         if(friend != null && friend2 != null){
-           throw new BusinessException("存在冗余数据!");
-        }
-        if(friend != null){
-            friend.setStatus((byte) 1);
-            return friendMapper.updateById(friend) > 0;
-        }
-        if(friend2 != null){
-            friend2.setStatus((byte)1);
-            return friendMapper.updateById(friend2) > 0;
+           friend.setStatus((byte) 1);
+            int i = friendMapper.updateById(friend);
+            friend2.setStatus((byte) 2);
+            int j = friendMapper.updateById(friend2);
+            return i> 0 && j > 0;
         }
         //拿到首字母
         String pinyin = PinyinUtil.getPinyinInitial(friendInfo.getNickname()).toUpperCase();
         String regex = "[a-zA-Z]";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(pinyin);
-        char firstLetter = 'A';
+        char friendLetter = 'Z';
         if (matcher.find()) {
-            firstLetter = matcher.group().charAt(0);
+            friendLetter = matcher.group().charAt(0);
+        }
+        //拿到首字母
+        String pinyin2 = PinyinUtil.getPinyinInitial(invitation.getUserNickname()).toUpperCase();
+        Matcher matcher2 = pattern.matcher(pinyin2);
+        char myLetter = 'Z';
+        if (matcher2.find()) {
+            myLetter = matcher2.group().charAt(0);
         }
         //构建朋友对象
         Friend newFriend = Friend.builder()
                 .userId(invitation.getUserId())
                 .friendId(friendInfo.getId())
                 .avatar(friendInfo.getAvatar())
-                .alphabetic(String.valueOf(firstLetter))
+                .alphabetic(String.valueOf(friendLetter))
                 .nickname(friendInfo.getNickname())
                 .status((byte) 1)
                 .remark("")
                 .createBy(invitation.getUserId())
                 .updateBy(invitation.getUserId())
                 .build();
-        return friendMapper.insert(newFriend) > 0;
+        Friend newFriend2 = Friend.builder()
+                .userId(friendInfo.getId())
+                .friendId(invitation.getUserId())
+                .avatar(invitation.getUserAvatar())
+                .alphabetic(String.valueOf(myLetter))
+                .nickname(invitation.getUserNickname())
+                .status((byte) 1)
+                .remark("")
+                .createBy(invitation.getUserId())
+                .updateBy(invitation.getUserId())
+                .build();
+        return friendMapper.insert(newFriend) > 0 && friendMapper.insert(newFriend2) > 0;
     }
 
     /**
@@ -113,17 +127,15 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
                 .ne(Invitation::getStatus, (byte) 2);
         //判断是否已经是好友了
         LambdaQueryWrapper<Friend> wrapperF = new LambdaQueryWrapper<>();
-        wrapperF.eq(Friend::getUserId, invitation.getUserId());
-        wrapperF.eq(Friend::getFriendId, invitation.getFriendId());
-        wrapperF.eq(Friend::getStatus, (byte) 1);
+        wrapperF.eq(Friend::getUserId, invitation.getUserId())
+            .eq(Friend::getFriendId, invitation.getFriendId())
+            .eq(Friend::getStatus, (byte) 1)
+                .or()
+                .eq(Friend::getUserId, invitation.getFriendId())
+               .eq(Friend::getFriendId, invitation.getUserId())
+               .eq(Friend::getStatus, (byte) 1);
         Friend has = friendMapper.selectOne(wrapperF);
-
-        LambdaQueryWrapper<Friend> wrapperF2 = new LambdaQueryWrapper<>();
-        wrapperF2.eq(Friend::getUserId, invitation.getFriendId());
-        wrapperF2.eq(Friend::getFriendId, invitation.getUserId());
-        wrapperF2.eq(Friend::getStatus, (byte) 1);
-        Friend has2 = friendMapper.selectOne(wrapperF2);
-        if(has != null || has2!= null){
+        if(has != null){
             throw new BusinessException("你们已经是好友了,请不要重复申请");
         }
         invitation.setStatus((byte)0);
@@ -136,21 +148,26 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     public boolean auditFriend(Invitation invitation) {
         LambdaQueryWrapper<Invitation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Invitation::getId, invitation.getId());
-        boolean b = addFriend(invitation);
+        if(invitation.getStatus() == 1){
+            boolean b = addFriend(invitation);
+        }
         int update = invitationMapper.update(invitation, wrapper);
-
-        return update > 0 & b;
+        return update > 0;
     }
 
 
     @Override
-    public boolean deleteFriend(Long id) {
+    public boolean deleteFriend(Long userId,Long friendId) {
         LambdaQueryWrapper<Friend> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Friend::getId, id);
-        Friend friend = friendMapper.selectOne(wrapper);
-        friend.setStatus((byte)0);
-        int update = friendMapper.update(friend, wrapper);
-        return update > 0;
+        wrapper.eq(Friend::getUserId, userId).eq(Friend::getFriendId,friendId)
+                .or()
+                .eq(Friend::getUserId,friendId).eq(Friend::getFriendId, userId);
+        List<Friend> friends = friendMapper.selectList(wrapper);
+        friends.forEach(friend -> {
+            friend.setStatus((byte)0);
+            friendMapper.updateById(friend);
+        });
+        return true;
     }
 
 

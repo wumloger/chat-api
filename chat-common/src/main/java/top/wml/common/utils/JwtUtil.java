@@ -67,5 +67,11 @@ public class JwtUtil {
     public static Long getUserId(String token){
         return getJSONObject(token).get("id", Long.class);
     }
+    public static String getNickname(String token){
+        return getJSONObject(token).get("nickname", String.class);
+    }
+    public static String getAvatar(String token){
+        return getJSONObject(token).get("avatar", String.class);
+    }
 
 }
