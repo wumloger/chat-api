@@ -34,6 +34,8 @@ public class GroupUser {
 
     private Byte status;
 
+    private Byte isAttention;
+
     private String remark;
     @JsonSerialize(using = ToStringSerializer.class)
     private Long createBy;

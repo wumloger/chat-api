@@ -1,6 +1,9 @@
 package top.wml.common.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.AllArgsConstructor;
@@ -10,40 +13,35 @@ import lombok.NoArgsConstructor;
 
 import java.util.Date;
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
-@TableName("group_info")
-public class Group {
+public class MsgUnreadRecord {
     @TableId(type = IdType.ASSIGN_ID)
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
-    private String name;
-
-    private String avatar;
-
-    private String notice;
-
-    private String intro;
-
-    private String alphabetic;
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long targetId;
 
     @JsonSerialize(using = ToStringSerializer.class)
-    private Long adminUserId;
+    private Long userId;
 
-    private Byte status;
+    private Integer unreadNum;
 
-    private String remark;
+    private Byte source;
+
+    public String remark;
+
     @JsonSerialize(using = ToStringSerializer.class)
-    private Long createBy;
+    public Long createBy;
 
     @TableField(fill = FieldFill.INSERT)
-    private Date createTime;
+    public Date createTime;
+
     @JsonSerialize(using = ToStringSerializer.class)
-    private Long updateBy;
+    public Long updateBy;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
-    private Date updateTime;
-
+    public Date updateTime;
 }

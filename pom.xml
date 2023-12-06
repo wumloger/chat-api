@@ -9,6 +9,7 @@
         <module>chat-friend</module>
         <module>chat-group</module>
         <module>chat-common</module>
+        <module>chat-gateway</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>

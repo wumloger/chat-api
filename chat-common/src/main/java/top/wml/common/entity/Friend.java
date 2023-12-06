@@ -34,6 +34,8 @@ public class Friend {
 
     private Byte status;
 
+    private Byte isAttention;
+
     private String remark;
 
     private Long createBy;

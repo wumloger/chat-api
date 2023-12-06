@@ -118,6 +118,15 @@ public class FriendController {
         return resp;
     }
 
+    @GetMapping("/get/{userId}/{friendId}")
+    public Friend getFriendById(@PathVariable("userId") Long userId, @PathVariable("friendId") Long friendId){
+        LambdaQueryWrapper<Friend> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Friend::getUserId,friendId)
+                .eq(Friend::getFriendId,userId)
+                .eq(Friend::getStatus,1);
+        return friendService.getOne(wrapper);
+    }
+
     private Long getUserId(){
         String token = request.getHeader("token");
         Long userId = JwtUtil.getUserId(token);

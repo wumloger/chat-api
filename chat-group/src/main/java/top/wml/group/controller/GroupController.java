@@ -103,7 +103,7 @@ public class GroupController {
     @DeleteMapping("/delete/{id}")
     public CommonResp<Boolean> deleteGroup(@PathVariable Long id){
         Group group = groupService.getById(id);
-        if(getUserId() != group.getAdminUserId()){
+        if(getUserId().compareTo(group.getAdminUserId()) != 0){
             throw new BusinessException("你没有权限删除该群组!");
         }
         Boolean aBoolean = groupService.deleteGroup(group);
@@ -112,6 +112,10 @@ public class GroupController {
         return resp;
     }
 
+    /**
+     * 获取我创建的群聊
+     * @return
+     */
     @GetMapping("/myList")
     public CommonResp<List<Group>> getMyGroupList(){
         LambdaQueryWrapper<Group> wrapper = new LambdaQueryWrapper<>();
@@ -122,6 +126,10 @@ public class GroupController {
         return resp;
     }
 
+    /**
+     * 获取我加入和的创建的群聊
+     * @return
+     */
     @GetMapping("/list")
     public CommonResp<List<Group>> getGroupList(){
         LambdaQueryWrapper<GroupUser> groupUserWrapper = new LambdaQueryWrapper<>();
@@ -178,6 +186,16 @@ public class GroupController {
         return resp;
     }
 
+    @GetMapping("/getMyInvitations")
+    public CommonResp<List<GroupInvitation>> getMyInvitations(){
+        LambdaQueryWrapper<GroupInvitation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(GroupInvitation::getUserId,getUserId());
+        List<GroupInvitation> list = groupInvitationService.list(wrapper);
+        CommonResp<List<GroupInvitation>> resp = new CommonResp<>();
+        resp.success(list);
+        return resp;
+    }
+
     @PostMapping("/audit")
     public CommonResp<Boolean> auditInvitation(@RequestBody GroupInvitation groupInvitation){
         boolean audit = groupService.auditInvitation(groupInvitation,getUserId());
@@ -198,6 +216,22 @@ public class GroupController {
     }
 
 
+    @GetMapping("/get/{groupId}/{userId}")
+    public GroupUser getGroupUserById(@PathVariable Long groupId,@PathVariable Long userId){
+        LambdaQueryWrapper<GroupUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(GroupUser::getGroupId,groupId)
+                .eq(GroupUser::getUserId,userId)
+                .eq(GroupUser::getStatus,1);
+        return groupUserService.getOne(wrapper);
+    }
+
+    @GetMapping("/list/{groupId}")
+    public List<GroupUser> getGroupUserList(@PathVariable Long groupId){
+        LambdaQueryWrapper<GroupUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(GroupUser::getGroupId,groupId)
+               .eq(GroupUser::getStatus,1);
+        return groupUserService.list(wrapper);
+    }
 
 
     private Long getUserId(){
