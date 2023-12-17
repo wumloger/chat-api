@@ -4,6 +4,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import top.wml.common.entity.Friend;
+import top.wml.common.entity.Group;
 import top.wml.common.entity.GroupUser;
 
 import java.util.List;
@@ -16,5 +17,8 @@ public interface GroupService {
 
     @GetMapping("/list/{groupId}")
     List<GroupUser> getGroupUserList(@PathVariable Long groupId);
+
+    @GetMapping("/getGroupInfo/{id}")
+    Group getGroupInfoById(@PathVariable Long id);
 
 }

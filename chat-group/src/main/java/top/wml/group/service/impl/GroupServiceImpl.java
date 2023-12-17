@@ -95,7 +95,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
         }
         if(groupInvitation.getStatus() == 1){
             //有了就不要插入了
-            if(groupUser != null && (groupUser.getStatus() == 0 || groupUser.getStatus() == -1)){
+            if(groupUser != null && (groupUser.getStatus() == 0 || groupUser.getStatus() == 2)){
                 groupUser.setStatus((byte) 1);
                 groupUserMapper.updateById(groupUser);
             }else{

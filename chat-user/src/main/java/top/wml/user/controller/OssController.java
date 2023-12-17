@@ -20,7 +20,7 @@ import java.time.LocalDate;
 
 @Slf4j
 @RestController
-@RequestMapping("/oss")
+@RequestMapping("/user/oss")
 public class OssController {
 
     @Resource
@@ -29,6 +29,7 @@ public class OssController {
     @Autowired
     private MinioConfig minioConfig;
 
+    @Resource
     private HttpServletRequest request;
     /**
      * 文件上传
@@ -55,8 +56,45 @@ public class OssController {
             int month = localDate.getMonthValue();
             int day = localDate.getDayOfMonth();
 
+            //拿到用户id
+            String token = request.getHeader("token");
+            Long userId = JwtUtil.getUserId(token);
             //按id和时间分文件
-            newFileName = year + "/" + month + "/" + day + "/" + newFileName;
+            newFileName = userId + "/" + year + "/" + month + "/" + day + "/" + newFileName;
+            //类型
+            String contentType = file.getContentType();
+            minioUtils.uploadFile(minioConfig.getBucketName(), file, newFileName, contentType);
+            String url = minioUtils.getPresignedObjectUrl(minioConfig.getBucketName(), newFileName);
+            System.out.println(url);
+            resp.setMsg("上传成功");
+            resp.success(url);
+            return resp;
+        } catch (Exception e) {
+            log.error("上传失败", e);
+            resp.fail("上传失败");
+            return resp;
+        }
+    }
+    @PostMapping("/uploadAvatar")
+    @TokenRequired
+    public CommonResp uploadAvatar(@RequestParam("file") MultipartFile file) {
+        CommonResp<String> resp = new CommonResp<>();
+        try {
+            //文件名
+            String fileName = file.getOriginalFilename();
+            int i = fileName.lastIndexOf(".");
+            if (i == -1) {
+                resp.fail("文件格式错误");
+            }
+            String suffix = fileName.substring(i + 1);
+//            String newFileName = System.currentTimeMillis() + "." + StringUtils.substringAfterLast(fileName, ".");
+            String newFileName = System.currentTimeMillis() + "." + suffix;
+
+            //拿到用户id
+            String token = request.getHeader("token");
+            Long userId = JwtUtil.getUserId(token);
+            //上传到用户文件夹的avatar目录
+            newFileName = userId + "/avatar/" + newFileName;
             //类型
             String contentType = file.getContentType();
             minioUtils.uploadFile(minioConfig.getBucketName(), file, newFileName, contentType);

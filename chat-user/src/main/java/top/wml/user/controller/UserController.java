@@ -11,8 +11,10 @@ import top.wml.common.req.ChangePasswordEntity;
 import top.wml.common.resp.CommonResp;
 import top.wml.common.utils.JwtUtil;
 import top.wml.common.utils.RedisUtil;
+import top.wml.common.utils.StringUtil;
 import top.wml.user.service.UserService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -58,14 +60,14 @@ public class UserController {
     }
 
     @GetMapping("/getUser")
-    public CommonResp getUser(@RequestParam(required = false) String id){
+    public CommonResp<List<User>> getUser(@RequestParam(required = false) String id){
         //查询全部
-        if(Objects.isNull(id) || id.isEmpty()){
-            List<User> userList = userService.getUserList();
-            CommonResp<List<User>> resp = new CommonResp<>();
-            resp.success(userList);
-            return resp;
-        }
+//        if(Objects.isNull(id) || id.isEmpty()){
+//            List<User> userList = userService.getUserList();
+//            CommonResp<List<User>> resp = new CommonResp<>();
+//            resp.success(userList);
+//            return resp;
+//        }
         //id转化为Long
         Long lid = null;
         try{
@@ -75,8 +77,8 @@ public class UserController {
         }
         //查询单个
         User userById = userService.getUserById(lid);
-        CommonResp<User> resp = new CommonResp<>();
-        resp.success(userById);
+        CommonResp<List<User>> resp = new CommonResp<>();
+        resp.success(List.of(userById));
         return resp;
     }
 
@@ -136,8 +138,27 @@ public class UserController {
 
     @GetMapping("/getUserByNickname")
     public CommonResp<List<User>> getUserListByNickName(@RequestParam String nickname){
+
         CommonResp<List<User>> resp = new CommonResp<>();
+        if(StringUtil.isBlank(nickname)){
+            resp.success(new ArrayList<>());
+            return resp;
+        }
         resp.success(userService.selectUserByNickname(nickname));
+        return resp;
+    }
+
+    @GetMapping("/getUserByUsername")
+    public CommonResp<List<User>> getUserListByUserName(@RequestParam String username){
+        CommonResp<List<User>> resp = new CommonResp<>();
+        if(StringUtil.isBlank(username)){
+            resp.success(new ArrayList<>());
+            return resp;
+        }
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(User::getUsername,username)
+                .eq(User::getStatus,1);
+        resp.success(userService.list(wrapper));
         return resp;
     }
 

@@ -8,10 +8,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 import top.wml.common.entity.*;
 import top.wml.common.exception.BusinessException;
 import top.wml.common.resp.CommonResp;
@@ -25,11 +22,17 @@ import top.wml.message.service.MsgUnreadRecordService;
 import java.util.ArrayList;
 import java.util.List;
 
-@Controller("message")
+@Controller()
 public class ChatController {
-
     @Resource
     private FriendService friendService;
+
+    @Resource
+    private GroupService groupService;
+
+    @Resource
+    private SimpMessagingTemplate simpMessagingTemplate;
+
     @Resource
     private FriendMsgService friendMsgService;
 
@@ -37,13 +40,8 @@ public class ChatController {
     private GroupMsgService groupMsgService;
 
     @Resource
-    private GroupService groupService;
-
-    @Resource
     private MsgUnreadRecordService msgUnreadRecordService;
 
-    @Resource
-    private SimpMessagingTemplate simpMessagingTemplate;
 
     @Resource
     private RedisUtil redisUtil;
@@ -62,7 +60,22 @@ public class ChatController {
         message.setUpdateBy(message.getFromUserId());
         message.setStatus((byte) 0);
         friendMsgService.save(message);
-
+        //看下我有没有好友的消息列表
+        LambdaQueryWrapper<MsgUnreadRecord> myWrapper = new LambdaQueryWrapper<>();
+        myWrapper.eq(MsgUnreadRecord::getUserId, message.getFromUserId())
+                .eq(MsgUnreadRecord::getTargetId, message.getToUserId());
+        MsgUnreadRecord my = msgUnreadRecordService.getOne(myWrapper);
+        //没有就创建
+        if(my == null){
+            my = new MsgUnreadRecord();
+            my.setUserId(message.getFromUserId());
+            my.setTargetId(message.getToUserId());
+            my.setSource((byte) 0);
+            my.setUnreadNum(1);
+            my.setCreateBy(message.getFromUserId());
+            my.setUpdateBy(message.getFromUserId());
+            msgUnreadRecordService.save(my);
+        }
         //消息列表更新，未读记录加1
         LambdaQueryWrapper<MsgUnreadRecord> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(MsgUnreadRecord::getUserId, message.getToUserId())
@@ -71,8 +84,8 @@ public class ChatController {
         //如果没有消息记录就创建一个
         if(one == null){
             one = new MsgUnreadRecord();
-            one.setUserId(message.getFromUserId());
-            one.setTargetId(message.getToUserId());
+            one.setUserId(message.getToUserId());
+            one.setTargetId(message.getFromUserId());
             one.setSource((byte) 0);
             one.setUnreadNum(1);
             one.setCreateBy(message.getToUserId());
@@ -142,82 +155,4 @@ public class ChatController {
         return message;
     }
 
-    //获取所有未读消息列表
-    @GetMapping("/getUnread/userid")
-    public CommonResp<List<MsgUnreadRecord>> getMsgUnreadRecord(@PathVariable Long userId){
-        LambdaQueryWrapper<MsgUnreadRecord> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(MsgUnreadRecord::getUserId,userId);
-        List<MsgUnreadRecord> list = msgUnreadRecordService.list(wrapper);
-        CommonResp<List<MsgUnreadRecord>> resp = new CommonResp<>();
-        resp.success(list);
-        return resp;
-    }
-
-    //删除消息列表
-    @DeleteMapping("/deleteUnread/{id}")
-    public CommonResp<Boolean> deleteMsgUnreadRecord(@PathVariable Long id){
-        boolean b = msgUnreadRecordService.removeById(id);
-        CommonResp<Boolean> resp = new CommonResp<>();
-        resp.success(b);
-        return resp;
-    }
-    @GetMapping("/getFriendMsg/{userId}/{friendId}/{page}")
-    public CommonResp<Page<FriendMsg>> getFriendMsgList(@PathVariable Long userId,@PathVariable Long friendId,@PathVariable int page){
-        CommonResp<Page<FriendMsg>> resp = new CommonResp<>();
-        if(redisUtil.get("friendMsg:" + userId + "-" + friendId) != null && page == 1){
-            resp.success((Page<FriendMsg>) redisUtil.get("friendMsg:" + userId + "-" + friendId));
-            return resp;
-        }
-        //每次查出50条
-        LambdaQueryWrapper<FriendMsg> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FriendMsg::getFromUserId,userId).eq(FriendMsg::getToUserId,friendId).eq(FriendMsg::getStatus,0)
-                .or()
-                .eq(FriendMsg::getFromUserId,friendId).eq(FriendMsg::getToUserId,userId).eq(FriendMsg::getStatus,0);
-        Page<FriendMsg> list = friendMsgService.page(new Page<>(page, 50), wrapper);
-        //只缓存最新的数据
-        if(page == 1){
-            //缓存到redis中
-            redisUtil.set("friendMsg:" + userId + "-" + friendId,list,1000 * 60 * 60 * 24 * 7);
-        }
-
-        resp.success(list);
-        return resp;
-    }
-    @GetMapping("/getGroupMsg/{groupId}/{userId}/{page}")
-    public CommonResp<Page<GroupMsg>> getGroupMsgList(@PathVariable Long groupId,@PathVariable int page){
-        CommonResp<Page<GroupMsg>> resp = new CommonResp<>();
-        if(redisUtil.get("groupMsg:" + groupId) != null && page == 1){
-            resp.success((Page<GroupMsg>) redisUtil.get("groupMsg:" + groupId));
-            return resp;
-        }
-        //每次查出50条
-        LambdaQueryWrapper<GroupMsg> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(GroupMsg::getGroupId,groupId).eq(GroupMsg::getStatus,0);
-
-        Page<GroupMsg> list = groupMsgService.page(new Page<>(page, 100), wrapper);
-        if(page == 1){
-            //缓存到redis中
-            redisUtil.set("groupMsg:" + groupId,list,1000 * 60 * 60 * 24 * 7);
-        }
-        resp.success(list);
-        return resp;
-    }
-
-    @PostMapping("/back/{type}/{id}")
-    public CommonResp<Boolean> backMsg(byte type,Long id){
-        //0是好友消息撤回，1是群组消息撤回
-        CommonResp<Boolean> resp = new CommonResp<>();
-        if(type == 0){
-            FriendMsg byId = friendMsgService.getById(id);
-            byId.setStatus((byte) 1);
-            boolean b = friendMsgService.saveOrUpdate(byId);
-            resp.success(b);
-            return resp;
-        }
-        GroupMsg byId = groupMsgService.getById(id);
-        byId.setStatus((byte) 1);
-        boolean b = groupMsgService.saveOrUpdate(byId);
-        resp.success(b);
-        return resp;
-    }
 }

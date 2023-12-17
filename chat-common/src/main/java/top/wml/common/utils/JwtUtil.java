@@ -33,7 +33,7 @@ public class JwtUtil {
         // 生效时间
         payload.put(JWTPayload.NOT_BEFORE, now);
         // 内容
-        payload.put("id", user.getId());
+        payload.put("id", user.getId().toString());
         payload.put("username",user.getUsername());
         payload.put("nickname",user.getNickname());
         payload.put("sex",user.getSex());

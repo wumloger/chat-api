@@ -9,5 +9,8 @@ import top.wml.common.entity.Friend;
 public interface FriendService {
 
     @GetMapping("/get/{userId}/{friendId}")
+    /**
+     * targetId，userId
+     */
     Friend getFriendById(@PathVariable("userId") Long userId, @PathVariable("friendId") Long friendId);
 }

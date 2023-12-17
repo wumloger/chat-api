@@ -127,6 +127,13 @@ public class FriendController {
         return friendService.getOne(wrapper);
     }
 
+    @PutMapping("/update")
+    public CommonResp<Boolean> updateFriendInfo(@RequestBody Friend friend){
+        CommonResp<Boolean> resp = new CommonResp<>();
+        resp.success(friendService.updateById(friend));
+        return resp;
+    }
+
     private Long getUserId(){
         String token = request.getHeader("token");
         Long userId = JwtUtil.getUserId(token);

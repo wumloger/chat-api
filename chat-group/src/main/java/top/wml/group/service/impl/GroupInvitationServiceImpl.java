@@ -47,10 +47,13 @@ public class GroupInvitationServiceImpl extends ServiceImpl<GroupInvitationMappe
         groupUsers.forEach((item)->{
             ids.add(item.getGroupId());
         });
-        LambdaQueryWrapper<GroupInvitation> groupInvitationWrapper = new LambdaQueryWrapper<>();
-        groupInvitationWrapper.in(GroupInvitation::getGroupId,ids)
-                .eq(GroupInvitation::getStatus,0);
-        return groupInvitationMapper.selectList(groupInvitationWrapper);
+        if(ids.size() > 0){
+            LambdaQueryWrapper<GroupInvitation> groupInvitationWrapper = new LambdaQueryWrapper<>();
+            groupInvitationWrapper.in(GroupInvitation::getGroupId,ids);
+            return groupInvitationMapper.selectList(groupInvitationWrapper);
+        }
+
+       return new ArrayList<>();
 
     }
 }

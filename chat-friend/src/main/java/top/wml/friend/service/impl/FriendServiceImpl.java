@@ -111,7 +111,8 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
      */
     public List<Invitation> getInvitationList(Long id) {
         LambdaQueryWrapper<Invitation> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Invitation::getFriendId,id);
+        wrapper.eq(Invitation::getFriendId,id)
+                .orderByAsc(Invitation::getStatus);
         return invitationMapper.selectList(wrapper);
     }
 
@@ -121,10 +122,20 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         if(invitation == null || invitation.getUserId() == null || invitation.getFriendId() == null){
             throw new BusinessException("提交信息不全");
         }
+        //判断是否已经申请过了
         LambdaQueryWrapper<Invitation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Invitation::getUserId, invitation.getUserId())
               .eq(Invitation::getFriendId, invitation.getFriendId())
                 .ne(Invitation::getStatus, (byte) 2);
+        Invitation hasOne = invitationMapper.selectOne(wrapper);
+        if(hasOne != null){
+            if(hasOne.getStatus() == 0){
+                throw new BusinessException("您的申请正在等待对方通过，请不要重复申请！");
+            }else{
+                throw new BusinessException("您的申请已经通过，请不要重复申请！");
+            }
+
+        }
         //判断是否已经是好友了
         LambdaQueryWrapper<Friend> wrapperF = new LambdaQueryWrapper<>();
         wrapperF.eq(Friend::getUserId, invitation.getUserId())
@@ -183,7 +194,7 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     @Override
     public List<Friend> getFriendList(Long id) {
         LambdaQueryWrapper<Friend> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Friend::getUserId, id).or().eq(Friend::getFriendId, id);
+        wrapper.eq(Friend::getUserId, id);
         wrapper.eq(Friend::getStatus, (byte) 1);
         List<Friend> friends = friendMapper.selectList(wrapper);
         return friends;

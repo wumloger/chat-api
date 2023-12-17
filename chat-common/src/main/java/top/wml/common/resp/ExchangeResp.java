@@ -1,45 +1,54 @@
-package top.wml.common.entity;
+package top.wml.common.resp;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 
 import java.util.Date;
-
 @Data
-public class Message {
-    @TableId(type = IdType.ASSIGN_ID)
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class ExchangeResp {
     @JsonSerialize(using = ToStringSerializer.class)
-    public Long id;
-
-    public String msgContent;
-
-    public String msgType;
+    private Long id;
 
     @JsonSerialize(using = ToStringSerializer.class)
-    public Long fromUserId;
+    private Long targetId;
 
-    public Byte status;
+    private String targetName;
 
-    public String time;
+    private String targetAvatar;
+
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long userId;
+
+    private String newMsg;
+
+    @JsonFormat(pattern = "HH:mm")
+    private Date msgTime;
+
+    private Integer unreadNum;
+
+    private Byte source;
 
     public String remark;
 
     @JsonSerialize(using = ToStringSerializer.class)
     public Long createBy;
 
-    @TableField(fill = FieldFill.INSERT)
     public Date createTime;
 
-    @JsonSerialize(using = ToStringSerializer.class)
     public Long updateBy;
 
-    @TableField(fill = FieldFill.INSERT_UPDATE)
     public Date updateTime;
-
-
 }

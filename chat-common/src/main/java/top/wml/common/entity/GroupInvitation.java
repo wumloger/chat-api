@@ -32,6 +32,8 @@ public class GroupInvitation {
 
     private String groupName;
 
+    private String groupAvatar;
+
     private Byte status;
 
     private String reason;

@@ -133,7 +133,8 @@ public class GroupController {
     @GetMapping("/list")
     public CommonResp<List<Group>> getGroupList(){
         LambdaQueryWrapper<GroupUser> groupUserWrapper = new LambdaQueryWrapper<>();
-        groupUserWrapper.eq(GroupUser::getUserId,getUserId());
+        groupUserWrapper.eq(GroupUser::getUserId,getUserId())
+                .eq(GroupUser::getStatus,1);
         List<GroupUser> groupUserList = groupUserService.list(groupUserWrapper);
         List<Group> list = null;
         CommonResp<List<Group>> resp = new CommonResp<>();
@@ -162,17 +163,32 @@ public class GroupController {
         return resp;
     }
 
+    @GetMapping("/getGroupInfo/{id}")
+    public Group getGroupInfoById(@PathVariable Long id){
+        Group byId = groupService.getById(id);
+        return byId;
+    }
+
 
     @PostMapping("/join")
     public CommonResp<Boolean> applyJoinGroup(@RequestBody GroupInvitation groupInvitation){
+        LambdaQueryWrapper<GroupInvitation> inviteWrapper = new LambdaQueryWrapper<>();
+        inviteWrapper.eq(GroupInvitation::getUserId,groupInvitation.getUserId())
+               .eq(GroupInvitation::getGroupId,groupInvitation.getGroupId())
+                .eq(GroupInvitation::getStatus,0);
+        GroupInvitation invite = groupInvitationService.getOne(inviteWrapper);
+        if(invite!= null){
+            throw new BusinessException("你的申请正在审核！");
+        }
         LambdaQueryWrapper<GroupUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(GroupUser::getUserId,groupInvitation.getUserId())
-                .eq(GroupUser::getGroupId,groupInvitation.getGroupId());
+                .eq(GroupUser::getGroupId,groupInvitation.getGroupId())
+                .eq(GroupUser::getStatus,1);
         GroupUser one = groupUserService.getOne(wrapper);
         if(one!= null){
             throw new BusinessException("你已经在群聊里了！");
         }
-        boolean save = groupInvitationService.save(groupInvitation);
+        boolean save = groupInvitationService.saveOrUpdate(groupInvitation);
         CommonResp<Boolean> resp = new CommonResp<>();
         resp.success(save);
         return resp;
@@ -203,16 +219,30 @@ public class GroupController {
         resp.success(audit);
         return resp;
     }
+    @DeleteMapping("/deleteInvitation/{id}")
+    public CommonResp<Boolean> deleteInvitation(@PathVariable Long id){
+        CommonResp<Boolean> resp = new CommonResp<>();
+        resp.success(groupInvitationService.removeById(id));
+        return resp;
+    }
 
     @PostMapping("/update")
     public CommonResp<Boolean> updateGroup(@RequestBody Group group){
-        if(getUserId() != group.getAdminUserId()){
-            throw new BusinessException("你没有权限修改该群组!");
+        LambdaQueryWrapper<GroupUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(GroupUser::getUserId,getUserId())
+               .eq(GroupUser::getGroupId,group.getId());
+        GroupUser byId = groupUserService.getOne(wrapper);
+        if(byId == null || byId.getStatus() != 1){
+            System.out.println(byId.toString());
+            throw new BusinessException("你没有权限修改该群组！");
         }
-        Boolean aBoolean = groupService.updateGroup(group);
         CommonResp<Boolean> resp = new CommonResp<>();
-        resp.success(aBoolean);
-        return resp;
+        if(getUserId().equals(group.getAdminUserId()) || byId.getAdminable() == 1){
+            Boolean aBoolean = groupService.updateGroup(group);
+            resp.success(aBoolean);
+            return resp;
+        }
+        throw new BusinessException("你没有权限修改该群组!");
     }
 
 
@@ -233,7 +263,42 @@ public class GroupController {
         return groupUserService.list(wrapper);
     }
 
+    @PostMapping("/updateUser")
+    public CommonResp<Boolean> updateGroupUser(@RequestBody GroupUser groupUser){
+        LambdaQueryWrapper<GroupUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(GroupUser::getUserId,getUserId())
+                        .eq(GroupUser::getGroupId,groupUser.getGroupId())
+                .eq(GroupUser::getStatus,1);
+        //操作人
+        GroupUser one = groupUserService.getOne(wrapper);
+        CommonResp<Boolean> resp = new CommonResp<>();
+        if(getUserId().equals(groupUser.getCreateBy() )|| one.getAdminable() == 1){
+            Boolean aBoolean = groupUserService.updateById(groupUser);
+            resp.success(aBoolean);
+        }else{
+            throw new BusinessException("你没有权限修改该群组成员!");
+        }
 
+        return resp;
+    }
+
+    /**
+     * 退出群聊
+     * @param groupUser
+     * @return
+     */
+    @PostMapping("/exitGroup")
+    public CommonResp<Boolean> exitGroup(@RequestBody GroupUser groupUser){
+        if(!groupUser.getUserId().equals(getUserId())){
+            throw new BusinessException("不能帮别人退出！");
+        }
+        groupUser.setStatus((byte) 2);
+        boolean b = groupUserService.updateById(groupUser);
+        CommonResp<Boolean> resp = new CommonResp<>();
+        resp.success(b);
+        return resp;
+
+    }
     private Long getUserId(){
         String token = request.getHeader("token");
         Long userId = JwtUtil.getUserId(token);

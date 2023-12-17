@@ -21,9 +21,9 @@ public class Friend {
     @TableId(type = IdType.ASSIGN_ID)
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
-
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long userId;
-
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long friendId;
 
     private String nickname;
@@ -37,12 +37,12 @@ public class Friend {
     private Byte isAttention;
 
     private String remark;
-
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long createBy;
 
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;
-
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long updateBy;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
