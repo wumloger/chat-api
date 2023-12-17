@@ -176,7 +176,7 @@ public class MessageController {
     }
 
     @PostMapping("/back/{type}/{id}")
-    public CommonResp<Boolean> backMsg(byte type,Long id){
+    public CommonResp<Boolean> backMsg(@PathVariable Byte type,@PathVariable Long id){
         //0是好友消息撤回，1是群组消息撤回
         CommonResp<Boolean> resp = new CommonResp<>();
         if(type == 0){
@@ -184,12 +184,14 @@ public class MessageController {
             byId.setStatus((byte) 1);
             boolean b = friendMsgService.saveOrUpdate(byId);
             resp.success(b);
+            redisUtil.delete("friendMsg:" + byId.getFromUserId() + "-" + byId.getToUserId());
             return resp;
         }
         GroupMsg byId = groupMsgService.getById(id);
         byId.setStatus((byte) 1);
         boolean b = groupMsgService.saveOrUpdate(byId);
         resp.success(b);
+        redisUtil.delete("groupMsg:" + byId.getGroupId());
         return resp;
     }
 }

@@ -119,7 +119,8 @@ public class GroupController {
     @GetMapping("/myList")
     public CommonResp<List<Group>> getMyGroupList(){
         LambdaQueryWrapper<Group> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Group::getAdminUserId,getUserId());
+        wrapper.eq(Group::getAdminUserId,getUserId())
+                .eq(Group::getStatus,1);
         List<Group> list = groupService.list(wrapper);
         CommonResp<List<Group>> resp = new CommonResp<>();
         resp.success(list);
@@ -148,13 +149,41 @@ public class GroupController {
                 groupIds.add(groupUser.getGroupId());
             });
             LambdaQueryWrapper<Group> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(Group::getId,groupIds);
+            wrapper.in(Group::getId,groupIds)
+                    .eq(Group::getStatus,1);
              list = groupService.list(wrapper);
         }
         resp.success(list);
         return resp;
     }
-
+    /**
+     * 根据名称获取用户组列表
+     * @param name 用户组名称
+     * @return 用户组列表的通用响应
+     */
+    @GetMapping("/getByName")
+    public CommonResp<List<Group>> getGroupsByName(@RequestParam String name){
+        LambdaQueryWrapper<Group> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(Group::getName,name)
+                .eq(Group::getStatus,1);
+        CommonResp<List<Group>> resp = new CommonResp<>();
+        resp.success(groupService.list(wrapper));
+        return resp;
+    }
+    /**
+     * 根据ID获取用户组列表
+     * @param id 用户组ID
+     * @return 用户组列表的通用响应
+     */
+    @GetMapping("/getById")
+    public CommonResp<List<Group>> getGroupsById(@RequestParam Long id){
+        LambdaQueryWrapper<Group> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Group::getId,id)
+                .eq(Group::getStatus,1);
+        CommonResp<List<Group>> resp = new CommonResp<>();
+        resp.success(groupService.list(wrapper));
+        return resp;
+    }
     @GetMapping("/get/{id}")
     public CommonResp<Group> getGroupById(@PathVariable Long id){
         Group group = groupService.getById(id);
