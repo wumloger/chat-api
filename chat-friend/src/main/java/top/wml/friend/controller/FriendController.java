@@ -7,9 +7,11 @@ import org.springframework.web.bind.annotation.*;
 import top.wml.common.annotation.TokenRequired;
 import top.wml.common.entity.Friend;
 import top.wml.common.entity.Invitation;
+import top.wml.common.entity.User;
 import top.wml.common.exception.BusinessException;
 import top.wml.common.resp.CommonResp;
 import top.wml.common.utils.JwtUtil;
+import top.wml.friend.entity.FriendVO;
 import top.wml.friend.service.FriendService;
 import top.wml.friend.service.InvitationService;
 
@@ -131,6 +133,52 @@ public class FriendController {
     public CommonResp<Boolean> updateFriendInfo(@RequestBody Friend friend){
         CommonResp<Boolean> resp = new CommonResp<>();
         resp.success(friendService.updateById(friend));
+        return resp;
+    }
+
+    //用户信息修改后的好友信息同步修改
+    @PutMapping("/updateFriendInfo")
+    public Boolean updateFriendInfo(@RequestBody User user){
+        //找到friendid为传递的user的id的好友信息
+        if(user!= null){
+            LambdaQueryWrapper<Friend> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Friend::getFriendId,user.getId());
+            List<Friend> list = friendService.list(wrapper);
+            for(Friend friend : list){
+                friend.setNickname(user.getNickname());
+                friend.setAvatar(user.getAvatar());
+                friend.setUpdateTime(user.getUpdateTime());
+                friendService.updateById(friend);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 统计未处理的申请数量
+     * @return
+     */
+    @GetMapping("/count")
+    public CommonResp<Long> getApplyCount(){
+        LambdaQueryWrapper<Invitation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Invitation::getFriendId,getUserId());
+        wrapper.eq(Invitation::getStatus,0);
+        long count = invitationService.count(wrapper);
+        CommonResp<Long> resp = new CommonResp<>();
+        resp.success(count);
+        return resp;
+    }
+
+    @GetMapping("/recommend")
+    public CommonResp<List<FriendVO>> getRecommendList(){
+        LambdaQueryWrapper<Friend> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Friend::getStatus,1);
+        List<Friend> allFriends = friendService.list(wrapper);
+        long start = System.currentTimeMillis();
+        List<FriendVO> recommendList = friendService.getRecommendList(getUserId(), allFriends);
+        System.out.println(System.currentTimeMillis() - start);
+        CommonResp<List<FriendVO>> resp = new CommonResp<>();
+        resp.success(recommendList);
         return resp;
     }
 

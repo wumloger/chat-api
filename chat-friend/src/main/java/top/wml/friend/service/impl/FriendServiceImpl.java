@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.wml.common.annotation.TokenRequired;
@@ -13,14 +14,16 @@ import top.wml.common.entity.User;
 import top.wml.common.exception.BusinessException;
 import top.wml.common.utils.JwtUtil;
 import top.wml.common.utils.PinyinUtil;
+import top.wml.friend.entity.FriendVO;
 import top.wml.friend.mapper.FriendMapper;
 import top.wml.friend.mapper.InvitationMapper;
 import top.wml.friend.openfeign.UserService;
 import top.wml.friend.service.FriendService;
 
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> implements FriendService {
@@ -117,6 +120,58 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     }
 
     @Override
+    public List<FriendVO> getRecommendList(Long userId, List<Friend> allFriends) {
+        // 创建一个Map，用于存储每个用户的好友列表
+        Map<Long, Set<Long>> userFriendsMap = new HashMap<>();
+
+        // 将所有好友关系按用户分组
+        for (Friend friend : allFriends) {
+            userFriendsMap.computeIfAbsent(friend.getUserId(), k -> new HashSet<>()).add(friend.getFriendId());
+        }
+        // 获取给定用户的好友列表
+        Set<Long> userFriends = userFriendsMap.getOrDefault(userId, Collections.emptySet());
+
+        // 统计共同好友的数量
+        Map<Long, Integer> commonFriendsCountMap = new HashMap<>();
+        for (Long friendId : userFriendsMap.keySet()) {
+            // 跳过已经是用户的好友的用户
+            if (userFriends.contains(friendId)) {
+                continue;
+            }
+
+            // 统计共同好友的数量
+            Set<Long> commonFriends = userFriendsMap.getOrDefault(friendId, Collections.emptySet());
+            commonFriendsCountMap.put(friendId, (int) commonFriends.stream().filter(userFriends::contains).count());
+        }
+
+        // 按照共同好友的数量从大到小排序
+        List<Long> sortedCommonFriends = commonFriendsCountMap.entrySet().stream()
+                .sorted(Map.Entry.<Long, Integer>comparingByValue().reversed())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+
+        // 构造FriendVO实体列表
+        List<FriendVO> result = sortedCommonFriends.stream()
+                .map(friendId -> {
+                    FriendVO friendVO = new FriendVO();
+                    BeanUtils.copyProperties(allFriends.stream()
+                            .filter(friend -> friend.getFriendId().equals(friendId))
+                            .findFirst()
+                            .orElse(null), friendVO);
+                    if (friendVO != null) {
+                        // 设置共同好友数量
+                        friendVO.setNum(commonFriendsCountMap.get(friendId));
+                    }
+                    return friendVO;
+                })
+                .filter(friendVO -> friendVO != null && friendVO.getNum() != 0 && !friendVO.getFriendId().equals(userId))
+                .collect(Collectors.toList());
+
+        return result;
+    }
+
+    @Override
     @Transactional
     public boolean applyFriend(Invitation invitation) {
         if(invitation == null || invitation.getUserId() == null || invitation.getFriendId() == null){
@@ -131,10 +186,7 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         if(hasOne != null){
             if(hasOne.getStatus() == 0){
                 throw new BusinessException("您的申请正在等待对方通过，请不要重复申请！");
-            }else{
-                throw new BusinessException("您的申请已经通过，请不要重复申请！");
             }
-
         }
         //判断是否已经是好友了
         LambdaQueryWrapper<Friend> wrapperF = new LambdaQueryWrapper<>();

@@ -12,6 +12,8 @@ import top.wml.common.resp.CommonResp;
 import top.wml.common.utils.JwtUtil;
 import top.wml.common.utils.RedisUtil;
 import top.wml.common.utils.StringUtil;
+import top.wml.user.feign.FriendService;
+import top.wml.user.feign.GroupService;
 import top.wml.user.service.UserService;
 
 import java.util.ArrayList;
@@ -23,6 +25,10 @@ import java.util.Objects;
 public class UserController {
     @Resource
     private UserService userService;
+    @Resource
+    private FriendService friendService;
+    @Resource
+    private GroupService groupService;
 
     @Resource
     private HttpServletRequest request;
@@ -87,7 +93,12 @@ public class UserController {
         if(Objects.isNull(user)){
             throw new BusinessException("更新信息为空");
         }
+        //跟新用户信息
         boolean b = userService.updateUserInfo(user);
+        //跟新好友表的信息
+        friendService.updateFriendInfo(user);
+        //跟新群友表的信息
+        groupService.updateUser(user);
         CommonResp<Boolean> resp = new CommonResp<>();
         if(b){
             resp.success(true);
@@ -103,7 +114,7 @@ public class UserController {
         String code = userService.sendEmailForCode(email);
         System.out.println("验证码为：" + code);
         CommonResp<String> resp = new CommonResp<>();
-        resp.success(code);
+        resp.success("发送成功");
         resp.setMsg("发送成功");
         return resp;
     }
@@ -127,6 +138,19 @@ public class UserController {
         }else{
             throw new BusinessException("验证码错误");
         }
+        return resp;
+    }
+
+    //修改密码
+    @PutMapping("/updatePassword")
+    public CommonResp<Boolean> updatePassword(@RequestBody ChangePasswordEntity changePasswordEntity){
+        User userById = userService.getUserById(getUserId());
+        if(!userById.getPassword().equals(changePasswordEntity.getOldPassword())){
+            throw new BusinessException("旧密码错误!");
+        }
+        userById.setPassword(changePasswordEntity.getPassword());
+        CommonResp<Boolean> resp = new CommonResp();
+        resp.success(userService.updateById(userById));
         return resp;
     }
 

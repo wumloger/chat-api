@@ -223,6 +223,10 @@ public class GroupController {
         return resp;
     }
 
+    /**
+     * 获取我要处理的申请
+     * @return
+     */
     @GetMapping("/getInvitations")
     public CommonResp<List<GroupInvitation>> getInvitationList(){
         List<GroupInvitation> invitationList = groupInvitationService.getInvitationList(getUserId());
@@ -230,6 +234,27 @@ public class GroupController {
         resp.success(invitationList);
         return resp;
     }
+
+    /**
+     * 获取要处理的数量
+     * @return
+     */
+    @GetMapping("/count")
+    public CommonResp<Integer> getInvitationListCount(){
+        List<GroupInvitation> invitationList = groupInvitationService.getInvitationList(getUserId());
+        int count = 0;
+        for (GroupInvitation i :
+                invitationList) {
+            if(i.getStatus() == 0){
+                count++;
+            }
+        }
+        CommonResp<Integer> resp = new CommonResp<>();
+        resp.success(count);
+        return resp;
+    }
+
+
 
     @GetMapping("/getMyInvitations")
     public CommonResp<List<GroupInvitation>> getMyInvitations(){
@@ -327,6 +352,25 @@ public class GroupController {
         resp.success(b);
         return resp;
 
+    }
+
+    //用户更新后群友表也要更新
+    @PostMapping("/updateGroupUserInfo")
+    public  Boolean updateUser(@RequestBody User user){
+        if(user.getId() == null){
+            throw new BusinessException("用户id不能为空！");
+        }
+        //找到所有userid为传递的userid的记录
+        LambdaQueryWrapper<GroupUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(GroupUser::getUserId,user.getId());
+        List<GroupUser> groupUserList = groupUserService.list(wrapper);
+        //遍历跟新
+        for(GroupUser groupUser : groupUserList){
+            groupUser.setUserNickname(user.getNickname());
+            groupUser.setUserAvatar(user.getAvatar());
+            groupUserService.updateById(groupUser);
+        }
+        return true;
     }
     private Long getUserId(){
         String token = request.getHeader("token");

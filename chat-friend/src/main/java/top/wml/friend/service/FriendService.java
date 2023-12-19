@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import top.wml.common.entity.Friend;
 import top.wml.common.entity.Invitation;
 import top.wml.common.entity.User;
+import top.wml.friend.entity.FriendVO;
 
 import java.util.List;
 
@@ -27,5 +28,7 @@ public interface FriendService extends IService<Friend> {
     List<Friend> getFriendList(Long id);
 
     List<Invitation> getInvitationList(Long id);
+
+    List<FriendVO> getRecommendList(Long userId, List<Friend> allFriends);
 
 }

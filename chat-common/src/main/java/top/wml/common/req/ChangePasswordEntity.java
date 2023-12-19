@@ -16,5 +16,6 @@ public class ChangePasswordEntity {
 
     private String code;
 
+    private String oldPassword;
     private String password;
 }
