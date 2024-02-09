@@ -61,7 +61,7 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         if(friend != null && friend2 != null){
            friend.setStatus((byte) 1);
             int i = friendMapper.updateById(friend);
-            friend2.setStatus((byte) 2);
+            friend2.setStatus((byte) 1);
             int j = friendMapper.updateById(friend2);
             return i> 0 && j > 0;
         }

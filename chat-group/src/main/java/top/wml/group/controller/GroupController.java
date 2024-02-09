@@ -40,7 +40,7 @@ public class GroupController {
 
     @PostMapping("/create")
     @TokenRequired
-    public CommonResp<Boolean> createGroup(@RequestBody GroupVO groupVO){
+    public CommonResp<String> createGroup(@RequestBody GroupVO groupVO){
         if (groupVO == null){
             throw new BusinessException("参数不能为空!");
         }
@@ -93,8 +93,8 @@ public class GroupController {
             });
             groupUserService.saveBatch(groupUsers);
         }
-        CommonResp<Boolean> resp = new CommonResp<>();
-        resp.success(groupId != null);
+        CommonResp<String> resp = new CommonResp<>();
+        resp.success(groupId.toString());
         return resp;
     }
 

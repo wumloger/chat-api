@@ -143,8 +143,10 @@ public class MessageController {
         //每次查出50条
         LambdaQueryWrapper<FriendMsg> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(FriendMsg::getFromUserId,userId).eq(FriendMsg::getToUserId,friendId).eq(FriendMsg::getStatus,0)
+                .orderByAsc(FriendMsg::getCreateTime)
                 .or()
-                .eq(FriendMsg::getFromUserId,friendId).eq(FriendMsg::getToUserId,userId).eq(FriendMsg::getStatus,0);
+                .eq(FriendMsg::getFromUserId,friendId).eq(FriendMsg::getToUserId,userId).eq(FriendMsg::getStatus,0)
+                .orderByAsc(FriendMsg::getCreateTime);
         Page<FriendMsg> list = friendMsgService.page(new Page<>(page, 50), wrapper);
         //只缓存最新的数据
         if(page == 1){
@@ -164,7 +166,7 @@ public class MessageController {
         }
         //每次查出50条
         LambdaQueryWrapper<GroupMsg> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(GroupMsg::getGroupId,groupId).eq(GroupMsg::getStatus,0);
+        wrapper.eq(GroupMsg::getGroupId,groupId).eq(GroupMsg::getStatus,0).orderByAsc(GroupMsg::getCreateTime);
 
         Page<GroupMsg> list = groupMsgService.page(new Page<>(page, 100), wrapper);
         if(page == 1){

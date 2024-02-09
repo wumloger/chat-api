@@ -75,10 +75,11 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
 
         LambdaQueryWrapper<GroupUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(GroupUser::getGroupId,groupInvitation.getGroupId())
-               .eq(GroupUser::getUserId,id);
+               .eq(GroupUser::getUserId,id).
+                eq(GroupUser::getStatus,1);
         GroupUser groupUser = groupUserMapper.selectOne(wrapper);
 
-        if(groupUser == null || groupUser.getStatus()!= 1){
+        if(groupUser == null){
             throw new BusinessException("审核者不是该群成员！");
         }
 
@@ -88,9 +89,10 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, Group> implements
 
         LambdaQueryWrapper<GroupUser> addWrapper = new LambdaQueryWrapper<>();
         addWrapper.eq(GroupUser::getUserId,groupInvitation.getUserId())
-                .eq(GroupUser::getGroupId,groupInvitation.getGroupId());
+                .eq(GroupUser::getGroupId,groupInvitation.getGroupId())
+                .eq(GroupUser::getStatus,1);
         groupUser = groupUserMapper.selectOne(addWrapper);
-        if(groupUser!= null && groupUser.getStatus() == 1){
+        if(groupUser!= null){
             throw new BusinessException("该用户已经加入该群！");
         }
         if(groupInvitation.getStatus() == 1){
